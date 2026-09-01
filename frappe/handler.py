@@ -114,8 +114,12 @@ def is_valid_http_method(method):
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def logout():
+	from frappe.utils.oauth import get_oauth2_logout_url
+
+	logout_url = get_oauth2_logout_url()
 	frappe.local.login_manager.logout()
 	frappe.db.commit()
+	return logout_url
 
 
 @frappe.whitelist(allow_guest=True, methods=["POST"])
