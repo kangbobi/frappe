@@ -28,6 +28,40 @@ class TestSocialLoginKey(IntegrationTestCase):
 		social_login_key.get_social_login_provider(provider_name, initialize=True)
 		self.assertRaises(BaseUrlNotSetError, social_login_key.insert)
 
+	def test_keycloak_template_has_disabled_oidc_logout(self):
+		key = make_social_login_key(social_login_provider="Keycloak")
+		key.get_social_login_provider("Keycloak", initialize=True)
+
+		self.assertEqual(key.end_session_endpoint, "/protocol/openid-connect/logout")
+		self.assertFalse(key.enable_oidc_logout)
+
+	def test_oidc_logout_requires_both_endpoints(self):
+		key = make_oidc_social_login_key(end_session_endpoint=None)
+		with self.assertRaisesRegex(frappe.ValidationError, "End Session Endpoint"):
+			key.validate()
+
+		key.end_session_endpoint = "/logout"
+		key.post_logout_redirect_uri = None
+		with self.assertRaisesRegex(frappe.ValidationError, "Post Logout Redirect URI"):
+			key.validate()
+
+	def test_oidc_logout_resolves_relative_end_session_endpoint(self):
+		key = make_oidc_social_login_key(end_session_endpoint="/logout")
+
+		key.validate()
+
+		self.assertEqual(key.get_end_session_endpoint(), "https://id.example.com/realms/test/logout")
+
+	def test_oidc_logout_rejects_non_https_urls(self):
+		key = make_oidc_social_login_key(end_session_endpoint="http://id.example.com/logout")
+		with self.assertRaises(frappe.ValidationError):
+			key.validate()
+
+		key.end_session_endpoint = "/logout"
+		key.post_logout_redirect_uri = "http://site.example.com/login"
+		with self.assertRaises(frappe.ValidationError):
+			key.validate()
+
 	def test_github_login_with_private_email(self):
 		github_social_login_setup()
 
@@ -143,6 +177,22 @@ def make_social_login_key(**kwargs):
 	return frappe.get_doc(kwargs)
 
 
+def make_oidc_social_login_key(**kwargs):
+	values = {
+		"base_url": "https://id.example.com/realms/test",
+		"custom_base_url": 1,
+		"authorize_url": "/authorize",
+		"access_token_url": "/token",
+		"redirect_url": "/oauth/callback",
+		"enable_social_login": 0,
+		"enable_oidc_logout": 1,
+		"end_session_endpoint": "/logout",
+		"post_logout_redirect_uri": "https://site.example.com/login",
+	}
+	values.update(kwargs)
+	return make_social_login_key(**values)
+
+
 def create_or_update_social_login_key():
 	# used in other tests (connected app, oauth20)
 	try:
@@ -208,13 +258,3 @@ def github_response_for_login(url, *args, **kwargs):
 		}
 	else:
 		return_value = [{"email": TEST_GITHUB_USER, "primary": True, "verified": True}]
-
-	return MagicMock(status_code=200, json=MagicMock(return_value=return_value))
-
-
-def github_social_login_setup():
-	set_request(path="/random")
-	frappe.local.cookie_manager = CookieManager()
-	frappe.local.login_manager = LoginManager()
-
-	return create_github_social_login_key()
