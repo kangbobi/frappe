@@ -136,7 +136,12 @@ class SocialLoginKey(Document):
 
 	def get_oidc_logout_url(self) -> str:
 		parsed = urlparse(self.get_end_session_endpoint())
-		query = parse_qsl(parsed.query, keep_blank_values=True)
+		# Replace identity/redirect parameters instead of duplicating query values.
+		query = [
+			(name, value)
+			for name, value in parse_qsl(parsed.query, keep_blank_values=True)
+			if name not in {"client_id", "post_logout_redirect_uri"}
+		]
 		query.extend(
 			(
 				("client_id", self.client_id),
