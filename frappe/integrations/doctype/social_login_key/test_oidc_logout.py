@@ -60,6 +60,24 @@ class TestOIDCLogout(IntegrationTestCase):
 		)
 
 
+	def test_oidc_logout_replaces_duplicate_configured_parameters(self):
+		key = make_oidc_social_login_key(
+			end_session_endpoint=(
+				"/logout?client_id=untrusted"
+				"&post_logout_redirect_uri=https%3A%2F%2Fwrong.example.com%2F"
+				"&ui_locales=en"
+			)
+		)
+
+		key.validate()
+		query = parse_qs(urlparse(key.get_oidc_logout_url()).query)
+
+		self.assertEqual(query["client_id"], ["test-client"])
+		self.assertEqual(query["post_logout_redirect_uri"], ["https://site.example.com/login"])
+		self.assertEqual(query["ui_locales"], ["en"])
+
+
+
 def make_social_login_key(**kwargs):
 	kwargs["doctype"] = "Social Login Key"
 	kwargs.setdefault("provider_name", "Test OIDC Provider")
