@@ -61,7 +61,7 @@ jobs:
           node-version: '24'
           db-root-password: db_root
           db: mariadb
-          build-assets: 'false'
+          build-assets: 'true'
           disable-web: 'true'
           disable-socketio: 'true'
           disable-workers: 'true'
