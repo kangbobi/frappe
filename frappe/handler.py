@@ -112,7 +112,7 @@ def is_valid_http_method(method):
 		frappe.throw_permission_error()
 
 
-@frappe.whitelist(allow_guest=True, methods=["POST"])
+@frappe.whitelist(allow_guest=True, methods=["POST"])  # nosemgrep: guest-whitelisted-method
 def logout():
 	from frappe.utils.oauth import get_oauth2_logout_url
 
@@ -153,7 +153,12 @@ def get_post_logout_redirect() -> str | None:
 			and not parsed.password
 		):
 			return redirect
-		if redirect.startswith("/") and not redirect.startswith("//") and not parsed.scheme and not parsed.netloc:
+		if (
+			redirect.startswith("/")
+			and not redirect.startswith("//")
+			and not parsed.scheme
+			and not parsed.netloc
+		):
 			return redirect
 	except ValueError:
 		pass
