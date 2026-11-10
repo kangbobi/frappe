@@ -25,7 +25,7 @@ jobs:
         run: git clone --depth 1 https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
       - name: Check changed code using Frappe rules
         env:
-          SEMGREP_BASELINE_REF: origin/develop
+          SEMGREP_BASELINE_REF: 143a4adf727584e8d0c16f591c89657f3700732d
         run: |
           pip install semgrep
           semgrep ci --config ./frappe-semgrep-rules/rules --config r/python.lang.correctness
