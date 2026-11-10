@@ -21,6 +21,10 @@
   "configuration_section",
   "sign_ups",
   "show_in_resource_metadata",
+  "oidc_logout_section",
+  "enable_oidc_logout",
+  "end_session_endpoint",
+  "post_logout_redirect_uri",
   "client_urls",
   "authorize_url",
   "access_token_url",
@@ -180,6 +184,33 @@
    "fieldname": "show_in_resource_metadata",
    "fieldtype": "Check",
    "label": "Show in Resource Metadata"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "oidc_logout_section",
+   "fieldtype": "Section Break",
+   "label": "OIDC Logout"
+  },
+  {
+   "default": "0",
+   "description": "Redirect users to the identity provider after the local Frappe session is cleared.",
+   "fieldname": "enable_oidc_logout",
+   "fieldtype": "Check",
+   "label": "Enable OIDC Logout"
+  },
+  {
+   "depends_on": "eval:doc.enable_oidc_logout",
+   "description": "OIDC end_session_endpoint. Relative paths use Base URL.",
+   "fieldname": "end_session_endpoint",
+   "fieldtype": "Data",
+   "label": "End Session Endpoint"
+  },
+  {
+   "depends_on": "eval:doc.enable_oidc_logout",
+   "description": "Absolute HTTPS URL registered with the identity provider for post-logout redirect.",
+   "fieldname": "post_logout_redirect_uri",
+   "fieldtype": "Data",
+   "label": "Post Logout Redirect URI"
   }
  ],
  "grid_page_length": 50,

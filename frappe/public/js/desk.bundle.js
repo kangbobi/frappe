@@ -128,6 +128,7 @@ import "./frappe/ui/workspace_sidebar_loading_skeleton.html";
 import "./frappe/legacy_gravatar_cleanup.js";
 import "./frappe/new_navigation_nudge.js";
 import "./frappe/desk.js";
+import "./frappe/utils/logout.js";
 import "./frappe/query_string.js";
 
 import "./frappe/utils/dashboard_utils.js";
