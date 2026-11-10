@@ -1,0 +1,76 @@
+name: OIDC Logout - Fork Sandbox
+
+on:
+  push:
+    branches:
+      - ci/oidc-logout-verify-20261110
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-checks:
+    name: Static and regression checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Check Python files compile
+        run: |
+          python -m compileall -q frappe/handler.py frappe/utils/oauth.py frappe/integrations/doctype/social_login_key frappe/tests/test_logout_redirect.py
+      - name: Validate JSON
+        run: |
+          python -m json.tool frappe/integrations/doctype/social_login_key/social_login_key.json > /dev/null
+      - name: Ruff (project config)
+        run: |
+          pip install ruff==0.14.10
+          ruff check frappe/handler.py frappe/utils/oauth.py frappe/integrations/doctype/social_login_key/social_login_key.py frappe/integrations/doctype/social_login_key/test_oidc_logout.py frappe/tests/test_logout_redirect.py
+          ruff format --check frappe/handler.py frappe/utils/oauth.py frappe/integrations/doctype/social_login_key/social_login_key.py frappe/integrations/doctype/social_login_key/test_oidc_logout.py frappe/tests/test_logout_redirect.py
+
+  frappe-integration:
+    name: Frappe Bench / MariaDB
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_ENV: production
+      DB_ROOT_PASSWORD: db_root
+      PYTHONWARNINGS: ignore
+    services:
+      mariadb:
+        image: mariadb:11.8
+        ports:
+          - 3306:3306
+        env:
+          MARIADB_ROOT_PASSWORD: db_root
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=2s
+          --health-retries=4
+          --tmpfs=/var/lib/mysql:rw,noexec,nosuid,size=2g
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+        name: Initialize isolated Frappe test site
+        with:
+          python-version: '3.14'
+          node-version: '24'
+          db-root-password: db_root
+          db: mariadb
+          build-assets: 'false'
+          disable-web: 'true'
+          disable-socketio: 'true'
+          disable-workers: 'true'
+      - name: Test OIDC logout
+        run: bench --site test_site run-tests --app frappe --module frappe.integrations.doctype.social_login_key.test_oidc_logout
+      - name: Test hook redirects
+        run: bench --site test_site run-tests --app frappe --module frappe.tests.test_logout_redirect
+      - name: Display service logs on failure
+        if: failure()
+        run: |
+          cat bench_start.log || true
+          find logs -type f -name '*.log' -maxdepth 2 -print | head -20
