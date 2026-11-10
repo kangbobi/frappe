@@ -140,7 +140,7 @@ def get_post_logout_redirect() -> str | None:
 		return None
 
 	# Reject control characters and backslashes that browsers may interpret as slashes.
-	if any(ord(char) < 32 or ord(char) == 127 for char in redirect) or "\\" in redirect:
+	if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in redirect) or "\\" in redirect:
 		return None
 
 	try:
@@ -149,8 +149,9 @@ def get_post_logout_redirect() -> str | None:
 			parsed.scheme == "https"
 			and parsed.netloc
 			and parsed.hostname
-			and not parsed.username
-			and not parsed.password
+			and parsed.username is None
+			and parsed.password is None
+			and (parsed.port is None or 1 <= parsed.port <= 65535)
 		):
 			return redirect
 		if (
