@@ -10,6 +10,26 @@ permissions:
   contents: read
 
 jobs:
+  semgrep-diff:
+    name: Frappe security rules (diff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Download Frappe Semgrep rules
+        run: git clone --depth 1 https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
+      - name: Check changed code using Frappe rules
+        env:
+          SEMGREP_BASELINE_REF: origin/develop
+        run: |
+          pip install semgrep
+          semgrep ci --config ./frappe-semgrep-rules/rules --config r/python.lang.correctness
+
   isolated-checks:
     name: Static and regression checks
     runs-on: ubuntu-latest
